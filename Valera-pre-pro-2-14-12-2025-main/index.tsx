@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './Valera-pre-pro-2-14-12-2025-main/Valera-pre-pro-2-main/App';
+import App from './Valera-pre-pro-2-main/App';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

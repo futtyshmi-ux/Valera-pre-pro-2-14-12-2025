@@ -18,6 +18,23 @@ const getClient = () => {
   return clientInstance;
 };
 
+// Helper: Convert URL to Base64 Data URL
+const urlToBase64 = async (url: string): Promise<string> => {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (e) {
+        console.warn("Failed to fetch image URL for GenAI:", url, e);
+        return "";
+    }
+};
+
 /**
  * Sends a message to the "Val" Director Agent.
  */
@@ -172,15 +189,39 @@ export const generateImage = async (
   const parts: any[] = [];
 
   if (referenceImages && referenceImages.length > 0) {
-    referenceImages.forEach(img => {
-        const cleanBase64 = img.split(',')[1] || img;
+    // 1. Resolve all images (convert URLs to Base64)
+    const processedImages = await Promise.all(referenceImages.map(async (img) => {
+        if (img.startsWith('http') || img.startsWith('https')) {
+            return await urlToBase64(img);
+        }
+        return img;
+    }));
+
+    // 2. Add to parts
+    processedImages.forEach(img => {
+        if (!img) return; // Skip failed downloads
+
+        // Detect if Data URL
+        const matches = img.match(/^data:(.+);base64,(.+)$/);
+        let mimeType = 'image/png';
+        let cleanBase64 = img;
+
+        if (matches && matches.length === 3) {
+            mimeType = matches[1];
+            cleanBase64 = matches[2];
+        } else if (img.includes('base64,')) {
+             // Fallback split if regex misses
+             cleanBase64 = img.split('base64,')[1];
+        }
+
         parts.push({
             inlineData: {
-                mimeType: 'image/png',
+                mimeType,
                 data: cleanBase64
             }
         });
     });
+
     // Add text prompt last as recommended
     parts.push({
       text: "Using the visual style and subjects from the attached reference images, generate: " + prompt

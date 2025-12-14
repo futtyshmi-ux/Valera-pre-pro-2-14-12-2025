@@ -18,13 +18,11 @@ const DEFAULT_SIT = VEL_DEFAULTS.SIT;
 
 type BehaviorMode = 
     | 'intro' 
-    | 'tour_valera'     // 1. Left Sidebar
-    | 'tour_assets'     // 2. Right Sidebar (Tools)
-    | 'tour_timeline'   // 3. Bottom (Master Sequence)
-    | 'tour_stage'      // 4. Center (Preview/Edit)
-    | 'tour_hub'        // 5. Tabs (Video/Audio)
-    | 'tour_settings'   // 6. Tabs (Settings)
-    | 'tour_header'     // 7. Top Right (Export)
+    | 'tour_valera'     // Left Sidebar (Director)
+    | 'tour_assets'     // Right Sidebar (Tools/Assets)
+    | 'tour_timeline'   // Bottom (Master Sequence)
+    | 'tour_stage'      // Center (Preview/Edit)
+    | 'tour_nav'        // Top (Studio/Hub/Settings)
     // --- CANVAS MODES ---
     | 'canvas_intro'
     | 'canvas_tools'
@@ -40,9 +38,7 @@ const TOUR_TARGET_IDS: Partial<Record<BehaviorMode, string>> = {
     'tour_assets': 'ui-assets-panel',
     'tour_timeline': 'ui-timeline-strip',
     'tour_stage': 'ui-main-stage',
-    'tour_hub': 'ui-tab-tools',
-    'tour_settings': 'ui-tab-settings',
-    'tour_header': 'ui-header-export',
+    'tour_nav': 'ui-main-tabs',
     'canvas_tools': 'ui-canvas-tools',
     'canvas_layers': 'ui-canvas-layers',
     'canvas_prompt': 'ui-canvas-prompt'
@@ -83,9 +79,10 @@ export const PatrickAssistant: React.FC<Props> = ({
 
     // 1. Initial Positioning & Event Listeners
     useEffect(() => {
+        // Start on the LEFT side (over Valera panel)
         setPos({ 
-            x: (window.innerWidth / 2) - (size / 2), 
-            y: (window.innerHeight / 2) - (size / 2) 
+            x: 60, 
+            y: (window.innerHeight / 2) - 100 
         });
 
         const handleCanvasOpen = () => {
@@ -196,15 +193,16 @@ export const PatrickAssistant: React.FC<Props> = ({
             setIsMoving(false);
             if (nextMode) {
                 setBehaviorMode(nextMode);
-                if (x < window.innerWidth / 2) setIsFlipped(false);
-                else setIsFlipped(true);
+                // Smart facing logic based on screen position
+                if (x < window.innerWidth / 2) setIsFlipped(false); // Face right if on left side
+                else setIsFlipped(true); // Face left if on right side
             }
         }, duration * 1000);
     };
 
     const startTour = () => {
-        // Step 1
-        moveTo(20, window.innerHeight / 2 - 100, 'tour_valera');
+        // Step 1: Director (Left Panel)
+        moveTo(60, window.innerHeight / 2 - 100, 'tour_valera');
     };
 
     const nextStep = () => {
@@ -212,14 +210,21 @@ export const PatrickAssistant: React.FC<Props> = ({
         const h = window.innerHeight;
 
         switch (behaviorMode) {
-            // --- MAIN TOUR ---
-            case 'tour_valera': moveTo(w - 320, 150, 'tour_assets'); break;
-            case 'tour_assets': moveTo(w / 2 - size/2, h - 250, 'tour_timeline'); break;
+            // --- MAIN TOUR (Updated for 3-pane layout) ---
+            // 1. Valera (Left) -> Assets (Right)
+            case 'tour_valera': moveTo(w - 180, 150, 'tour_assets'); break;
+            
+            // 2. Assets (Right) -> Timeline (Bottom)
+            case 'tour_assets': moveTo(w / 2 - size/2, h - 180, 'tour_timeline'); break;
+            
+            // 3. Timeline (Bottom) -> Stage (Center)
             case 'tour_timeline': moveTo(w / 2 - size/2, h / 2 - size/2, 'tour_stage'); break;
-            case 'tour_stage': moveTo(180, 80, 'tour_hub'); break;
-            case 'tour_hub': moveTo(280, 80, 'tour_settings'); break;
-            case 'tour_settings': moveTo(w - 180, 20, 'tour_header'); break;
-            case 'tour_header': moveTo(w - size - 20, h - size - 20, 'resting'); break;
+            
+            // 4. Stage (Center) -> Nav (Top)
+            case 'tour_stage': moveTo(w / 2 - size/2, 80, 'tour_nav'); break;
+            
+            // 5. Nav -> Rest
+            case 'tour_nav': moveTo(w - size - 20, h - size - 20, 'resting'); break;
 
             // --- CANVAS TOUR ---
             case 'canvas_intro': moveTo(120, h / 2 - 100, 'canvas_tools'); break;
@@ -239,7 +244,8 @@ export const PatrickAssistant: React.FC<Props> = ({
 
     const handleWakeUp = () => {
         setBehaviorMode('intro');
-        moveTo(window.innerWidth / 2 - size/2, window.innerHeight / 2 - size/2, 'intro');
+        // Reset to left side
+        moveTo(60, (window.innerHeight / 2) - 100, 'intro');
     };
 
     let activeSrc = idleGif || DEFAULT_IDLE;
@@ -249,31 +255,68 @@ export const PatrickAssistant: React.FC<Props> = ({
         activeSrc = sittingGif || DEFAULT_SIT;
     }
 
-    const TourBubble = ({ title, text, arrowDir }: { title: string, text: string, arrowDir?: string }) => (
-        <div className={`absolute ${arrowDir === 'down' ? 'bottom-full mb-4' : 'top-full mt-4'} left-1/2 -translate-x-1/2 w-64 bg-[#1a1a1a]/95 backdrop-blur text-white border border-[var(--accent)] p-4 rounded-xl shadow-2xl z-[9999] animate-fade-in-up`}>
-            <h4 className="text-[var(--accent)] font-bold text-xs uppercase tracking-widest mb-2 flex items-center gap-2">
-                {title}
-            </h4>
-            <p className="text-xs font-medium text-gray-300 mb-4 leading-relaxed">
-                {text}
-            </p>
-            <div className="flex gap-2">
-                <button onClick={nextStep} className="flex-1 py-2 bg-[var(--accent)] hover:brightness-110 text-black font-bold text-xs rounded uppercase transition-all shadow-lg">
-                    Дальше <ArrowRight size={12} className="inline ml-1"/>
-                </button>
-                <button onClick={skipTour} className="px-3 py-2 bg-[#333] hover:bg-white/10 text-gray-400 font-bold text-[10px] rounded uppercase transition-all">
-                    Skip
-                </button>
+    const TourBubble = ({ title, text, arrowDir }: { title: string, text: string, arrowDir?: string }) => {
+        // --- SMART POSITIONING LOGIC ---
+        // Prevents bubble from going off-screen
+        const screenW = window.innerWidth;
+        const screenH = window.innerHeight;
+        const bubbleW = 280; // Approximate width of bubble
+        const myX = pos.x;
+        const myY = pos.y;
+
+        let containerClass = "left-1/2 -translate-x-1/2"; 
+        let arrowClass = "left-1/2 -translate-x-1/2"; 
+        let verticalClass = arrowDir === 'down' ? 'bottom-full mb-4' : 'top-full mt-4';
+        
+        // Horizontal Check
+        if (myX < bubbleW / 2 + 20) {
+            // Too close to left -> Anchor Left
+            containerClass = "left-0 translate-x-[20%]"; 
+            arrowClass = "left-[20%]";
+        } else if (myX > screenW - (bubbleW / 2) - 20) {
+            // Too close to right -> Anchor Right
+            containerClass = "right-0 translate-x-[-20%]";
+            arrowClass = "right-[20%]";
+        }
+
+        // Special override for arrow direction based on layout context
+        if (arrowDir === 'left_side') {
+            containerClass = "left-full ml-4 top-0"; // Bubble to the right of character
+            verticalClass = "";
+            arrowClass = "top-4 right-full -mr-1 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-r-[8px] border-r-[var(--accent)]";
+        } else if (arrowDir === 'right_side') {
+            containerClass = "right-full mr-4 top-0"; // Bubble to the left of character
+            verticalClass = "";
+            arrowClass = "top-4 left-full -ml-1 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[8px] border-l-[var(--accent)]";
+        } else {
+            // Standard Top/Bottom arrows
+             arrowClass += arrowDir === 'down' 
+                ? ' top-full border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-[var(--accent)]' 
+                : ' bottom-full border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-[var(--accent)]';
+        }
+
+        return (
+            <div className={`absolute ${verticalClass} ${containerClass} w-64 bg-[#1a1a1a]/95 backdrop-blur text-white border border-[var(--accent)] p-4 rounded-xl shadow-2xl z-[9999] animate-fade-in-up`}>
+                <h4 className="text-[var(--accent)] font-bold text-xs uppercase tracking-widest mb-2 flex items-center gap-2">
+                    {title}
+                </h4>
+                <p className="text-xs font-medium text-gray-300 mb-4 leading-relaxed">
+                    {text}
+                </p>
+                <div className="flex gap-2">
+                    <button onClick={nextStep} className="flex-1 py-2 bg-[var(--accent)] hover:brightness-110 text-black font-bold text-xs rounded uppercase transition-all shadow-lg">
+                        Дальше <ArrowRight size={12} className="inline ml-1"/>
+                    </button>
+                    <button onClick={skipTour} className="px-3 py-2 bg-[#333] hover:bg-white/10 text-gray-400 font-bold text-[10px] rounded uppercase transition-all">
+                        Skip
+                    </button>
+                </div>
+                {/* Arrow CSS Triangle */}
+                {!arrowDir?.includes('side') && <div className={`absolute w-0 h-0 ${arrowClass}`}></div>}
+                {arrowDir?.includes('side') && <div className={`absolute w-0 h-0 ${arrowClass}`}></div>}
             </div>
-            {/* Arrow CSS Triangle */}
-            <div className={`absolute left-1/2 -translate-x-1/2 w-0 h-0 
-                ${arrowDir === 'down' 
-                    ? 'top-full border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-[var(--accent)]' 
-                    : 'bottom-full border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-[var(--accent)]'
-                }`}>
-            </div>
-        </div>
-    );
+        );
+    };
 
     const renderContent = () => {
         if (behaviorMode === 'resting') {
@@ -285,7 +328,7 @@ export const PatrickAssistant: React.FC<Props> = ({
                             <span>На чиле</span>
                         </div>
                         "Я тут отдыхаю. Если нужен — зови."
-                        <button onClick={handleWakeUp} className="mt-2 w-full bg-black text-white rounded py-1.5 text-[9px] uppercase hover:bg-gray-800 transition-colors">Позвать Вела</button>
+                        <button onClick={handleWakeUp} className="mt-2 w-full bg-black text-white rounded py-1.5 text-[9px] uppercase hover:bg-gray-800 transition-colors">Позвать Вэла</button>
                     </div>
                 );
             }
@@ -314,9 +357,10 @@ export const PatrickAssistant: React.FC<Props> = ({
 
         switch (behaviorMode) {
             case 'intro':
+                // Custom positioning for intro bubble since character is on left edge
                 return (
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-64 bg-[#1a1a1a] text-white border border-gray-600 p-4 rounded-xl shadow-2xl text-center z-[9999] animate-fade-in-up">
-                        <h4 className="text-[var(--accent)] font-bold text-xs uppercase tracking-widest mb-2">VEL (PRODUCER)</h4>
+                    <div className="absolute top-0 left-full ml-4 w-64 bg-[#1a1a1a] text-white border border-gray-600 p-4 rounded-xl shadow-2xl text-center z-[9999] animate-fade-in-up">
+                        <h4 className="text-[var(--accent)] font-bold text-xs uppercase tracking-widest mb-2">ВЭЛ (ПРОДЮСЕР)</h4>
                         <p className="text-xs font-medium text-gray-300 mb-3">
                             "Ну че, режиссер? Давай я тебе быстро покажу, где тут у нас что лежит, чтобы ты не потерялся."
                         </p>
@@ -328,17 +372,15 @@ export const PatrickAssistant: React.FC<Props> = ({
                                 Сам разберусь
                             </button>
                         </div>
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-gray-600"></div>
+                        <div className="absolute top-4 right-full -mr-1 w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-r-[8px] border-r-gray-600"></div>
                     </div>
                 );
             
-            case 'tour_valera': return <TourBubble title="ВАЛЕРА (AI)" text="Слева сидит Валера. Это твой ИИ-режиссер. Пиши ему идеи текстом, а он будет накидывать сценарий, предлагать кадры и генерить промпты." arrowDir="left_side" />;
-            case 'tour_assets': return <TourBubble title="TOOLS & ASSETS" text="Справа — панель инструментов. Тут создаем Персонажей и Локации (Assets), чтобы лица актеров не менялись от сцены к сцене. Очень важно!" arrowDir="right_side" />;
-            case 'tour_timeline': return <TourBubble title="MASTER SEQUENCE" text="Внизу — Таймлайн. Сюда падают готовые сцены. Можно менять порядок, удалять и смотреть общую длительность фильма." arrowDir="down" />;
-            case 'tour_stage': return <TourBubble title="STAGE / CANVAS" text="В центре — главный экран. Когда картинка готова, нажми 'Edit Image', чтобы зайти в редактор (Canvas) и дорисовать детали или поправить косяки." arrowDir="down" />;
-            case 'tour_hub': return <TourBubble title="VIDEO HUB" text="Вкладка 'Tools' (2-я сверху). Там ссылки на внешние нейронки (Runway, Pika, Suno) для анимации картинок и создания музыки." arrowDir="top" />;
-            case 'tour_settings': return <TourBubble title="SETTINGS" text="Третья вкладка — Настройки. Тут можно сменить тему, модель (Flash/Pro) и подключить Google Drive для бекапов." arrowDir="top" />;
-            case 'tour_header': return <TourBubble title="EXPORT & VIEW" text="Сверху справа кнопки Экспорта (ZIP, PDF, PPTX) и кнопка 'Full Screen' для полного погружения." arrowDir="top" />;
+            case 'tour_valera': return <TourBubble title="ВАЛЕРА (AI)" text="Слева — твой ИИ-режиссер. Пиши сюда идеи, он сделает раскадровку и накидает промпты." arrowDir="left_side" />;
+            case 'tour_assets': return <TourBubble title="ASSETS & TOOLS" text="Справа — панель управления. Тут твои актеры, локации и параметры конкретной сцены." arrowDir="right_side" />;
+            case 'tour_timeline': return <TourBubble title="TIMELINE" text="Внизу — монтажный стол. Все сцены тут. Можно менять порядок и удалять лишнее." arrowDir="down" />;
+            case 'tour_stage': return <TourBubble title="STAGE" text="В центре — сцена. Тут результат. Нажми 'Edit Image', чтобы дорисовать или исправить." arrowDir="down" />;
+            case 'tour_nav': return <TourBubble title="NAVIGATION" text="Сверху переключай режимы: Hub (Видео нейронки) и Settings (Настройки)." arrowDir="top" />;
             
             case 'canvas_intro': return <TourBubble title="CANVAS / EDITOR" text="Опа! Режим Творца (Canvas). Тут мы делаем магию с картинкой. Можно рисовать, удалять лишнее и дорисовывать нейронкой." arrowDir="down" />;
             case 'canvas_tools': return <TourBubble title="TOOLS" text="Слева — инструменты. 'Brush' чтобы рисовать, 'Inpaint' (кисть с магией) чтобы выделить область для нейронки, и 'Frame' чтобы расширить границы кадра." arrowDir="left" />;

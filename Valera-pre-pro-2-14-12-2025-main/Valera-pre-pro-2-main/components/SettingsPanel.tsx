@@ -150,7 +150,7 @@ export const SettingsPanel: React.FC<Props> = ({ settings, onUpdate, onExportZip
                           {settings.assistantIdleImage ? <img src={settings.assistantIdleImage} className="w-full h-full object-cover"/> : <span className="font-bold text-pink-500">V</span>}
                       </div>
                       <div>
-                          <div className="text-sm font-bold text-[var(--text-main)]">Vel (Animated Assistant)</div>
+                          <div className="text-sm font-bold text-[var(--text-main)]">Вэл (Анимированный Помощник)</div>
                           <div className="text-[10px] text-[var(--text-muted)]">Controls the walking mascot overlay</div>
                       </div>
                   </div>

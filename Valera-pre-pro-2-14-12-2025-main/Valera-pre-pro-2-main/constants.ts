@@ -372,7 +372,20 @@ export const INITIAL_PROJECT_STATE: ProjectData = {
       image: null
     }
   ],
-  timeline: [],
+  timeline: [
+      {
+          id: "default-scene",
+          title: "Welcome Scene",
+          description: "Default scene with Patrick animation.",
+          assignedAssetIds: [],
+          image: "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExMHVjcmlpMmV0MjJpam1iY3BkNXFrZHo5Z2JwczFsaXgwYzF0NXI3aiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/fDU9bZqsDyxvjNfXnk/giphy.gif",
+          imageHistory: ["https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExMHVjcmlpMmV0MjJpam1iY3BkNXFrZHo5Z2JwczFsaXgwYzF0NXI3aiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/fDU9bZqsDyxvjNfXnk/giphy.gif"],
+          quality: 'standard',
+          aspectRatio: "16:9",
+          duration: 4,
+          shotType: "Wide Shot"
+      }
+  ],
   timelineSettings: {
       fps: 24,
       width: 1920,
